@@ -51,8 +51,13 @@ function(req, res) {
   sess = req.session;
   console.log("SESSION: ",sess);
   // console.log("Cookies: ", req.cookies);
-  //res.redirect(302,'/login');
-  res.render('index');
+  res.redirect(302,'/login');
+  //res.render('index');
+});
+
+app.get('/index',
+  function(req, res){
+    res.render('index');
 });
 
 app.get('/signup',
@@ -113,6 +118,11 @@ function(req, res) {
   });
 });
 
+
+
+/************************************************************/
+// Write your authentication routes here
+/************************************************************/
 app.post('/signup',
 function(req, res){
   var username=req.body.username;
@@ -126,15 +136,25 @@ function(req, res){
   });
   user.save().then(function(newUser) {
             Users.add(newUser);
-            res.redirect('/');
+            res.redirect('/login');
           });
 
 });
 
-/************************************************************/
-// Write your authentication routes here
-/************************************************************/
-
+app.post('/login',
+function(req, res){
+  var username=req.body.username;
+  var password=req.body.password;
+  new User({ username: username, password:password }).fetch().then(function(found) {
+    if (found) {
+      console.log("The unsecure password", req.body.password, "was found");
+      res.redirect(302, '/index');
+    } else {
+      console.log('Username/password combination was not found');
+      return res.send(404);
+    }
+  });
+});
 
 
 /************************************************************/
