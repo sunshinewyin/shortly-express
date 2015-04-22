@@ -12,6 +12,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var bcrypt = require('bcrypt-nodejs');
 
 var app = express();
 
@@ -45,6 +46,11 @@ app.use(express.static(__dirname + '/public'));
 // });
 var sess;
 
+var isUser = function(username, password, callback) {
+  new User({ username: username, password:password }).fetch().then(function(found) {
+    callback(found);
+  });
+};
 
 app.get('/',
 function(req, res) {
@@ -125,35 +131,57 @@ function(req, res) {
 /************************************************************/
 app.post('/signup',
 function(req, res){
+
   var username=req.body.username;
   var password=req.body.password;
-  //console.log("req+++++++++++++++++++++++++: ",req);
-  // var uri = req.body.url;
-  // console.log("URI: ",uri);
-  var user = new User({
-    username: username,
-    password: password
-  });
-  user.save().then(function(newUser) {
-            Users.add(newUser);
-            res.redirect('/login');
-          });
 
+  new User ({username: username}).fetch().then(function(user){
+    if(!user) {
+      bcrypt.hash(password, null, null, function(err, hash) {
+        Users.create({
+          username: username,
+          password: hash
+        });
+        //regenerate session IDs
+      });
+
+      // var newUser = new User({
+      //   username: username,
+      //   password: password
+      // });
+
+      // newUser.save().then(function(newUser) {
+      //   Users.add(newUser);
+      //   res.redirect('/login');
+      // });
+    } else {
+      console.log('Account already exists');
+      res.redirect('/login');
+    }
+  });
 });
 
 app.post('/login',
 function(req, res){
-  var username=req.body.username;
-  var password=req.body.password;
-  new User({ username: username, password:password }).fetch().then(function(found) {
-    if (found) {
-      console.log("The unsecure password", req.body.password, "was found");
-      res.redirect(302, '/index');
-    } else {
-      console.log('Username/password combination was not found');
-      return res.send(404);
-    }
-  });
+  // console.log("username",req.body.username);
+  // console.log("password",req.body.password);
+  console.log("IS USER VALUE: ",isUser(req.body.username, req.body.password));
+    isUser(req.body.username, req.body.password, function(found){
+      if (found){
+        console.log("The unsecure password", req.body.password, "was found");
+        res.redirect(302, '/index');
+      }else{
+        console.log('Username/password combination was not found');
+        return res.send(404);
+      }
+    });
+    // if (isUser(req.body.username, req.body.password)) {
+    //   console.log("The unsecure password", req.body.password, "was found");
+    //   res.redirect(302, '/index');
+    // } else {
+    //   console.log('Username/password combination was not found');
+    //   return res.send(404);
+    // }
 });
 
 

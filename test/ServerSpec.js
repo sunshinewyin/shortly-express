@@ -67,7 +67,7 @@ describe('', function() {
       new User({
           'username': 'Phillip',
           'password': 'Phillip'
-      }).save().then(function(){
+      }).save().catch(function(error){}).then(function(){
         var options = {
           'method': 'POST',
           'followAllRedirects': true,
