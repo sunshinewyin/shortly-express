@@ -15,16 +15,21 @@ var User = db.Model.extend({
 
   },
   comparePasswords: function(potentialpassword, callback){
-    bcrypt.compare(potentialpassword, this.password)
-    //fetch the password from the table
-    //hash (the password from the request + the salt)
-    //compare the two
-    //callback(isMatch);
+    bcrypt.compare(potentialpassword, this.get('password'),function(err, doesMatch){
+      callback(doesMatch);
+    });
+  },
 
+  hashPassword: function(){
+    var cipher = Promise.promisify(bcrypt.hash);
+    //return a promise- bookshelf will wiat for the promise
+    //to resolve before completing the create action
+    return cipher(this.get('password'),null, null)
+      .bind(this)
+      .then(function(hash){
+        this.set('password', hash);
+      });
   }
 });
-
-
-
 
 module.exports = User;

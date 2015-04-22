@@ -52,16 +52,12 @@ var isUser = function(username, password, callback) {
   });
 };
 
-app.get('/',
-function(req, res) {
-  sess = req.session;
-  console.log("SESSION: ",sess);
-  // console.log("Cookies: ", req.cookies);
-  res.redirect(302,'/login');
+app.get('/', util.checkUser, function(req, res) {
+  res.redirect(302,'/index');
   //res.render('index');
 });
 
-app.get('/index',
+app.get('/index', util.checkUser,
   function(req, res){
     res.render('index');
 });
@@ -76,13 +72,13 @@ function(req, res) {
   res.render('login');
 });
 
-app.get('/create',
+app.get('/create', util.checkUser,
 function(req, res) {
   res.redirect(302,'/login');
   //res.render('index');
 });
 
-app.get('/links',
+app.get('/links', util.checkUser,
 function(req, res) {
   // res.redirect(302,'/login');
   Links.reset().fetch().then(function(links) {
@@ -131,29 +127,18 @@ function(req, res) {
 /************************************************************/
 app.post('/signup',
 function(req, res){
-
   var username=req.body.username;
   var password=req.body.password;
-
   new User ({username: username}).fetch().then(function(user){
     if(!user) {
       bcrypt.hash(password, null, null, function(err, hash) {
         Users.create({
           username: username,
           password: hash
+        }).then(function(user){
+          util.createSession(req,res,user);
         });
-        //regenerate session IDs
       });
-
-      // var newUser = new User({
-      //   username: username,
-      //   password: password
-      // });
-
-      // newUser.save().then(function(newUser) {
-      //   Users.add(newUser);
-      //   res.redirect('/login');
-      // });
     } else {
       console.log('Account already exists');
       res.redirect('/login');
@@ -163,8 +148,21 @@ function(req, res){
 
 app.post('/login',
 function(req, res){
-  // console.log("username",req.body.username);
-  // console.log("password",req.body.password);
+  var username=req.body.username;
+  var password=req.body.password;
+  console.log("INSIDE LOGIN");
+  new User ({username: username}).fetch().then(function(user){
+    var thisUser = user;
+    user.comparePasswords(password, function(doesMatch){
+      if (doesMatch) {
+        util.createSession(req, res, thisUser);
+      } else {
+        res.redirect(302, '/login');
+      }
+    });
+
+  });
+
   console.log("IS USER VALUE: ",isUser(req.body.username, req.body.password));
     isUser(req.body.username, req.body.password, function(found){
       if (found){
